@@ -11,13 +11,22 @@ shapes = []
 # Definindo Retangulo
 class Rect(object):
     def __init__ (self, points, m = create_identity()):
-        self.points = points
-        self.set_matrix(m)
+        self.points = points # points[0] = vertice superior à esquerda; points[1] = vertice inferior à direita
+        self.center = points[0] 
+        self.set_matrix(m) # Inicializa a matriz de transformações com a matriz fornecida ou a matriz identidade
+
     def set_point (self, i, p):
         self.points[i] = p
+        self.set_center(self.points)
+        
+    def set_center(self, points): # Atualiza o atributo que contem o centro do retangulo
+        self.center = [(points[0][0] + points[1][0])/2, 
+                        (points[1][1] + points[0][1])/2]
+
     def set_matrix(self,t):
         self.m = t
         self.invm = inverse(t)
+
     def contains(self,p):
         p = apply_to_vector(self.invm, [p[0],p[1],0,1])
         xmin = min(self.points[0][0],self.points[1][0])
@@ -25,6 +34,7 @@ class Rect(object):
         ymin = min(self.points[0][1],self.points[1][1])
         ymax = max(self.points[0][1],self.points[1][1])
         return xmin <= p[0] <= xmax and ymin <=p[1] <= ymax
+    
     def draw (self):
         glPushMatrix()
         glMultMatrixf(self.m)
@@ -44,7 +54,7 @@ class Circle(object):
     def set_radius(self, radius):
         self.radius = radius
 
-    def set_matrix(self, t): # Transformação aplicada
+    def set_matrix(self, t): # Aplicar ransformação 
         self.m = t
         self.invm = inverse(t)
 
@@ -68,7 +78,7 @@ class Circle(object):
         glPopMatrix()
 
 picked = None
-modeConstants = ["CREATE RECT", "CREATE CIRCLE", "TRANSLATE"]
+modeConstants = ["CREATE RECT", "CREATE CIRCLE", "TRANSLATE", "ROTATE"]
 mode = modeConstants[0]
 
 def reshape( width, height):
@@ -78,7 +88,7 @@ def reshape( width, height):
     gluOrtho2D(0,width,height,0)
     glMatrixMode (GL_MODELVIEW)
 
-def mouse (button, state, x, y):
+def mouse (button, state, x, y): # Ação após primeiro clique
     global lastx,lasty,picked
     if state!=GLUT_DOWN: return
     if mode == "CREATE RECT":
@@ -90,8 +100,14 @@ def mouse (button, state, x, y):
         for s in shapes:
             if s.contains([x,y]): picked = s
         lastx,lasty = x,y 
+    elif mode == "ROTATE":
+        picked = None
+        for s in shapes:
+            if s.contains([x,y]): picked = s
+        lastx,lasty = x,y 
 
-def mouse_drag(x, y):
+def mouse_drag(x, y): # Ação durante arrastar do mouse
+    global lastx,lasty
     if mode == "CREATE RECT":
         shapes[-1].set_point(1,[x,y])
     elif mode == "CREATE CIRCLE":
@@ -101,10 +117,25 @@ def mouse_drag(x, y):
         shapes[-1].set_radius(radius)
     elif mode == "TRANSLATE":
         if picked:
-            global lastx,lasty
             t = create_from_translation([x-lastx,y-lasty,0])
             picked.set_matrix(multiply(picked.m,t))
-            lastx,lasty=x,y
+            lastx, lasty = x, y
+    elif mode == "ROTATE":
+        if picked:
+            # Vetores entre o ponto clicado e o centro da forma
+            last_vector = [lastx - picked.center[0], lasty - picked.center[1]]
+            current_vector = [x - picked.center[0], y - picked.center[1]]
+
+            angle = (math.atan2(current_vector[1], current_vector[0]) 
+                     - math.atan2(last_vector[1], last_vector[0]))
+
+            # Traz a forma para o centro do eixo, rotaciona e a leva de volta
+            t = create_from_translation([-picked.center[0], -picked.center[1], 0])
+            rotation_matrix = create_from_eulers([0, -angle, 0])
+            rt = create_from_translation([picked.center[0], picked.center[1], 0])
+            transform_matrix = t @ rotation_matrix @ rt
+            picked.set_matrix(picked.m @ transform_matrix)
+            lastx, lasty = x, y           
     glutPostRedisplay()
 
 def display():
