@@ -12,23 +12,23 @@ shapes = []
 class Rect(object):
     def __init__ (self, points, m = create_identity()):
         self.points = points # points[0] = vertice superior à esquerda; points[1] = vertice inferior à direita
-        self.center = points[0] 
-        self.set_matrix(m) # Inicializa a matriz de transformações com a matriz fornecida ou a matriz identidade
+        self.set_matrix(m) # Inicializa a matriz de transformações
 
     def set_point (self, i, p):
         self.points[i] = p
-        self.set_center(self.points)
         
-    def set_center(self, points): # Atualiza o atributo que contem o centro do retangulo
-        self.center = [(points[0][0] + points[1][0])/2, 
-                        (points[1][1] + points[0][1])/2]
+    def get_center(self): # Retorna o centro da forma transformada
+        center = [(self.points[0][0] + self.points[1][0])/2, 
+                        (self.points[1][1] + self.points[0][1])/2]
+        trans_center = apply_to_vector(self.m, [center[0],center[1],0,1])
+        return trans_center
 
-    def set_matrix(self,t):
+    def set_matrix(self,t): # Aplicar transformação 
         self.m = t
         self.invm = inverse(t)
 
-    def contains(self,p):
-        p = apply_to_vector(self.invm, [p[0],p[1],0,1])
+    def contains(self,p): # Verifica se o ponto está contido na forma
+        p = apply_to_vector(self.invm, [p[0],p[1],0,1]) # Desfaz a transformação para verificar o contain
         xmin = min(self.points[0][0],self.points[1][0])
         xmax = max(self.points[0][0],self.points[1][0])
         ymin = min(self.points[0][1],self.points[1][1])
@@ -46,19 +46,20 @@ class Circle(object):
     def __init__(self, center, radius, m=create_identity()):
         self.center = center
         self.radius = radius
-        self.set_matrix(m)
+        self.set_matrix(m) # Inicializa a matriz de transformações
 
-    def set_center(self, center):
-        self.center = center
+    def get_center(self): # Retorna o centro da forma transformada
+        trans_center = apply_to_vector(self.m, [self.center[0],self.center[1],0,1])
+        return trans_center
 
     def set_radius(self, radius):
         self.radius = radius
 
-    def set_matrix(self, t): # Aplicar ransformação 
+    def set_matrix(self, t): # Aplicar transformação 
         self.m = t
         self.invm = inverse(t)
 
-    def contains(self, p):
+    def contains(self, p): # Verifica se o ponto está contido na forma
         p = apply_to_vector(self.invm, [p[0], p[1], 0, 1]) # Desfaz a transformação para verificar o contain
         dx = p[0] - self.center[0]
         dy = p[1] - self.center[1]
@@ -117,22 +118,22 @@ def mouse_drag(x, y): # Ação durante arrastar do mouse
         shapes[-1].set_radius(radius)
     elif mode == "TRANSLATE":
         if picked:
-            t = create_from_translation([x-lastx,y-lasty,0])
+            t = create_from_translation([x-lastx, y-lasty, 0])
             picked.set_matrix(multiply(picked.m,t))
             lastx, lasty = x, y
     elif mode == "ROTATE":
         if picked:
             # Vetores entre o ponto clicado e o centro da forma
-            last_vector = [lastx - picked.center[0], lasty - picked.center[1]]
-            current_vector = [x - picked.center[0], y - picked.center[1]]
+            last_vector = [lastx - picked.get_center()[0], lasty - picked.get_center()[1]]
+            current_vector = [x - picked.get_center()[0], y - picked.get_center()[1]]
 
             angle = (math.atan2(current_vector[1], current_vector[0]) 
                      - math.atan2(last_vector[1], last_vector[0]))
 
             # Traz a forma para o centro do eixo, rotaciona e a leva de volta
-            t = create_from_translation([-picked.center[0], -picked.center[1], 0])
+            t = create_from_translation([-picked.get_center()[0], -picked.get_center()[1], 0])
             rotation_matrix = create_from_eulers([0, -angle, 0])
-            rt = create_from_translation([picked.center[0], picked.center[1], 0])
+            rt = create_from_translation([picked.get_center()[0], picked.get_center()[1], 0])
             transform_matrix = t @ rotation_matrix @ rt
             picked.set_matrix(picked.m @ transform_matrix)
             lastx, lasty = x, y           
