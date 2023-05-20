@@ -153,12 +153,13 @@ def mouse_drag(x, y): # Ação durante arrastar do mouse
         if picked:
             center = picked.get_center()
             if center[0] != firstx or center[1] != firsty:
-                scale_axis = np.array([firstx - center[0], firsty - center[1]]) # Eixo de escala definido pelo primeiro clique
+                scale_axis = [firstx - center[0], firsty - center[1]] # Eixo de escala definido pelo primeiro clique
+                scale_axis_unit = scale_axis/np.linalg.norm(scale_axis) # Direção de escala
                 angle_to_x = -math.atan2(scale_axis[1], scale_axis[0]) # Angulo entre o eixo de escalonamento e o eixo X, padrão antihorario
 
                 # Vetores do centro da forma até os pontos de clique atual e anterior do mouse
-                mouse_axis = np.array([x - center[0], y - center[1]])
-                last_mouse_axis = np.array([lastx - center[0], lasty - center[1]])
+                mouse_axis = [x - center[0], y - center[1]]
+                last_mouse_axis = [lastx - center[0], lasty - center[1]]
 
                 # Projeção dos vetores do mouse sobre o eixo de escala
                 proj = np.dot(mouse_axis, scale_axis) / np.linalg.norm(scale_axis)
@@ -182,12 +183,20 @@ def mouse_drag(x, y): # Ação durante arrastar do mouse
 def display():
     glClear(GL_COLOR_BUFFER_BIT)
     for s in shapes:
-        glColor3f(0.4,0.4,0.4)
-        glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
-        s.draw()
-        glColor3f(1,0,1)
-        glPolygonMode(GL_FRONT_AND_BACK,GL_LINE)
-        s.draw()
+        if isinstance(s, Circle):
+            glColor3f(1, 0.6, 0.8)
+            glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
+            s.draw()
+            glColor3f(0.8, 0, 0.4)
+            glPolygonMode(GL_FRONT_AND_BACK,GL_LINE)
+            s.draw()
+        else:
+            glColor3f(0.8, 0.6, 1)
+            glPolygonMode(GL_FRONT_AND_BACK,GL_FILL)
+            s.draw()
+            glColor3f(0.5, 0, 0.5)
+            glPolygonMode(GL_FRONT_AND_BACK,GL_LINE)
+            s.draw()
     glutSwapBuffers()
 
 def createMenu():
