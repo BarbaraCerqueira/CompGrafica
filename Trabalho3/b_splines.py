@@ -110,7 +110,7 @@ def mouse(button, state, x, y):
             # Verify if click happened over a point
             for i, [px, py] in enumerate(control_points):
                 d = np.sqrt((px - x) ** 2 + (py - y) ** 2)
-                if d < 10:
+                if d < 12:
                     selected_point = i
                     break
         elif state == GLUT_UP:
