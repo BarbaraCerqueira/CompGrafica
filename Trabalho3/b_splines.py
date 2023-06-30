@@ -13,20 +13,25 @@ degree_step = 1
 control_points = np.array([[100 + ((width - 200) / 5) * i, height / 2 + np.random.uniform(-0.5, 0.5) * (height - 200)] for i in range(6)], dtype=np.float32)
 nodes = np.arange(12)
 
-
+# Pré-computar as funções de base
+base_functions = {}
 
 # Função B-Spline de Cox-de Boor recursiva
 def B(k, d, nodes):
+    if (k, d) in base_functions:
+        return base_functions[(k, d)]
+
     if d == 0:
         def base(u):
             return 1 if nodes[k] <= u < nodes[k + 1] else 0
-        return base
     else:
         Bk0 = B(k, d - 1, nodes)
         Bk1 = B(k + 1, d - 1, nodes)
         def base(u):
             return ((u - nodes[k]) / (nodes[k + d] - nodes[k])) * Bk0(u) + ((nodes[k + d + 1] - u) / (nodes[k + d + 1] - nodes[k + 1])) * Bk1(u)
-        return base
+    
+    base_functions[(k, d)] = base
+    return base
 
 # Amostragem da função B-Spline para desenho
 def sample_curve(pts, step=0.01):
